@@ -132,17 +132,13 @@ func (t *StartMachine) Execute(ctx context.Context, args map[string]interface{})
 		return nil, fmt.Errorf("machine_id is required")
 	}
 
-	// Build request payload
+	// Build request payload — body must be {"machine_id": N}
 	payload := htb.MachineActionRequest{
 		MachineID: int(machineID),
 	}
 
-	// Determine the correct endpoint based on machine type
-	// For now, we'll use the standard machine endpoint
-	endpoint := fmt.Sprintf("/machine/play/%d", int(machineID))
-
-	// Make API request
-	data, err := t.client.PostWithParsing(ctx, endpoint, payload, "")
+	// Spawn the machine via the correct v4 API endpoint
+	data, err := t.client.PostWithParsing(ctx, "/vm/spawn", payload, "")
 	if err != nil {
 		return nil, fmt.Errorf("failed to start machine: %w", err)
 	}
