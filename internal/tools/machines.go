@@ -208,6 +208,64 @@ func (t *GetMachineIP) Execute(ctx context.Context, args map[string]interface{})
 	}, nil
 }
 
+// ResetMachine tool for resetting a HTB machine
+type ResetMachine struct {
+	client *htb.Client
+}
+
+func NewResetMachine(client *htb.Client) *ResetMachine {
+	return &ResetMachine{client: client}
+}
+
+func (t *ResetMachine) Name() string {
+	return "reset_machine"
+}
+
+func (t *ResetMachine) Description() string {
+	return "Reset a HackTheBox machine by ID"
+}
+
+func (t *ResetMachine) Schema() mcp.ToolSchema {
+	return mcp.ToolSchema{
+		Type: "object",
+		Properties: map[string]mcp.Property{
+			"machine_id": {
+				Type:        "integer",
+				Description: "The ID of the machine to reset",
+			},
+		},
+		Required: []string{"machine_id"},
+	}
+}
+
+func (t *ResetMachine) Execute(ctx context.Context, args map[string]interface{}) (*mcp.CallToolResponse, error) {
+	machineID, ok := args["machine_id"].(float64)
+	if !ok {
+		return nil, fmt.Errorf("machine_id is required")
+	}
+
+	// Build request payload — body must be {"id": N}
+	payload := htb.MachineActionRequest{
+		ID: int(machineID),
+	}
+
+	// Reset the machine via the v4 API endpoint
+	data, err := t.client.PostWithParsing(ctx, "/vm/reset", payload, "")
+	if err != nil {
+		return nil, fmt.Errorf("failed to reset machine: %w", err)
+	}
+
+	// Create JSON content
+	content, err := mcp.CreateJSONContent(data)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create JSON content: %w", err)
+	}
+
+	return &mcp.CallToolResponse{
+		Content: []mcp.Content{content},
+	}, nil
+}
+
 // SubmitUserFlag tool for submitting user flags
 type SubmitUserFlag struct {
 	client *htb.Client
