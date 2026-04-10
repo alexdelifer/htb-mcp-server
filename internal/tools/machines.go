@@ -244,15 +244,73 @@ func (t *ResetMachine) Execute(ctx context.Context, args map[string]interface{})
 		return nil, fmt.Errorf("machine_id is required")
 	}
 
-	// Build request payload — body must be {"id": N}
+	// Build request payload — body must be {"machine_id": N}
 	payload := htb.MachineActionRequest{
-		ID: int(machineID),
+		MachineID: int(machineID),
 	}
 
 	// Reset the machine via the v4 API endpoint
 	data, err := t.client.PostWithParsing(ctx, "/vm/reset", payload, "")
 	if err != nil {
 		return nil, fmt.Errorf("failed to reset machine: %w", err)
+	}
+
+	// Create JSON content
+	content, err := mcp.CreateJSONContent(data)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create JSON content: %w", err)
+	}
+
+	return &mcp.CallToolResponse{
+		Content: []mcp.Content{content},
+	}, nil
+}
+
+// StopMachine tool for stopping/terminating a HTB machine
+type StopMachine struct {
+	client *htb.Client
+}
+
+func NewStopMachine(client *htb.Client) *StopMachine {
+	return &StopMachine{client: client}
+}
+
+func (t *StopMachine) Name() string {
+	return "stop_machine"
+}
+
+func (t *StopMachine) Description() string {
+	return "Stop/terminate a running HackTheBox machine by ID"
+}
+
+func (t *StopMachine) Schema() mcp.ToolSchema {
+	return mcp.ToolSchema{
+		Type: "object",
+		Properties: map[string]mcp.Property{
+			"machine_id": {
+				Type:        "integer",
+				Description: "The ID of the machine to stop",
+			},
+		},
+		Required: []string{"machine_id"},
+	}
+}
+
+func (t *StopMachine) Execute(ctx context.Context, args map[string]interface{}) (*mcp.CallToolResponse, error) {
+	machineID, ok := args["machine_id"].(float64)
+	if !ok {
+		return nil, fmt.Errorf("machine_id is required")
+	}
+
+	// Build request payload — body must be {"machine_id": N}
+	payload := htb.MachineActionRequest{
+		MachineID: int(machineID),
+	}
+
+	// Terminate the machine via the v4 API endpoint
+	data, err := t.client.PostWithParsing(ctx, "/vm/terminate", payload, "")
+	if err != nil {
+		return nil, fmt.Errorf("failed to stop machine: %w", err)
 	}
 
 	// Create JSON content
