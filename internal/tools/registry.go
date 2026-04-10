@@ -48,6 +48,7 @@ func (r *Registry) registerTools() {
 	r.RegisterTool(NewResetMachine(r.htbClient))
 	r.RegisterTool(NewStopMachine(r.htbClient))
 	r.RegisterTool(NewGetMachineIP(r.htbClient))
+	r.RegisterTool(NewGetMachineInfo(r.htbClient))
 	r.RegisterTool(NewSubmitUserFlag(r.htbClient))
 	r.RegisterTool(NewSubmitRootFlag(r.htbClient))
 

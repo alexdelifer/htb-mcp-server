@@ -455,3 +455,56 @@ func (t *SubmitRootFlag) Execute(ctx context.Context, args map[string]interface{
 		Content: []mcp.Content{content},
 	}, nil
 }
+
+// GetMachineInfo tool for getting detailed machine profile
+type GetMachineInfo struct {
+	client *htb.Client
+}
+
+func NewGetMachineInfo(client *htb.Client) *GetMachineInfo {
+	return &GetMachineInfo{client: client}
+}
+
+func (t *GetMachineInfo) Name() string {
+	return "get_machine_info"
+}
+
+func (t *GetMachineInfo) Description() string {
+	return "Get detailed machine profile including description, difficulty, maker, and setup instructions (info_status field)"
+}
+
+func (t *GetMachineInfo) Schema() mcp.ToolSchema {
+	return mcp.ToolSchema{
+		Type: "object",
+		Properties: map[string]mcp.Property{
+			"machine_id": {
+				Type:        "integer",
+				Description: "The ID of the machine to get info for",
+			},
+		},
+		Required: []string{"machine_id"},
+	}
+}
+
+func (t *GetMachineInfo) Execute(ctx context.Context, args map[string]interface{}) (*mcp.CallToolResponse, error) {
+	machineID, ok := args["machine_id"].(float64)
+	if !ok {
+		return nil, fmt.Errorf("machine_id is required")
+	}
+
+	endpoint := fmt.Sprintf("/machine/profile/%d", int(machineID))
+
+	data, err := t.client.GetWithParsing(ctx, endpoint, "info")
+	if err != nil {
+		return nil, fmt.Errorf("failed to get machine info: %w", err)
+	}
+
+	content, err := mcp.CreateJSONContent(data)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create JSON content: %w", err)
+	}
+
+	return &mcp.CallToolResponse{
+		Content: []mcp.Content{content},
+	}, nil
+}
