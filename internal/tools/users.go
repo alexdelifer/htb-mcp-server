@@ -92,31 +92,33 @@ func (t *GetUserProgress) Execute(ctx context.Context, args map[string]interface
 		progressType = pt
 	}
 
-	var endpoint string
-	var dataField string
-
-	switch progressType {
-	case "machines":
-		// Get user's machine progress
-		endpoint = "/user/info"
-		dataField = "info"
-	case "challenges":
-		// Get user's challenge progress
-		endpoint = "/user/info"
-		dataField = "info"
-	default:
-		// Get general user info
-		endpoint = "/user/info"
-		dataField = "info"
-	}
-
-	// Make API request
-	data, err := t.client.GetWithParsing(ctx, endpoint, dataField)
+	// Fetch full user info — the HTB API doesn't have separate progress endpoints,
+	// but /user/info contains all the relevant fields. We filter client-side.
+	data, err := t.client.GetWithParsing(ctx, "/user/info", "info")
 	if err != nil {
 		return nil, fmt.Errorf("failed to get user progress: %w", err)
 	}
 
-	// Create JSON content
+	// Filter response based on requested type
+	if dataMap, ok := data.(map[string]interface{}); ok && progressType != "overview" {
+		filtered := make(map[string]interface{})
+		switch progressType {
+		case "machines":
+			for _, key := range []string{"id", "name", "user_owns", "system_owns", "user_bloods", "system_bloods", "rank", "rank_id", "ranking", "points"} {
+				if v, exists := dataMap[key]; exists {
+					filtered[key] = v
+				}
+			}
+		case "challenges":
+			for _, key := range []string{"id", "name", "challenge_owns", "challenge_owns_count", "rank", "rank_id", "ranking", "points"} {
+				if v, exists := dataMap[key]; exists {
+					filtered[key] = v
+				}
+			}
+		}
+		data = filtered
+	}
+
 	content, err := mcp.CreateJSONContent(data)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create JSON content: %w", err)

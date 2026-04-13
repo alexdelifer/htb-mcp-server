@@ -39,7 +39,11 @@ func NewRegistry(htbClient *htb.Client) *Registry {
 func (r *Registry) registerTools() {
 	// Challenge management tools
 	r.RegisterTool(NewListChallenges(r.htbClient))
+	r.RegisterTool(NewGetChallengeInfo(r.htbClient))
 	r.RegisterTool(NewStartChallenge(r.htbClient))
+	r.RegisterTool(NewSpawnChallengeContainer(r.htbClient))
+	r.RegisterTool(NewStopChallengeContainer(r.htbClient))
+	r.RegisterTool(NewDownloadChallenge(r.htbClient))
 	r.RegisterTool(NewSubmitChallengeFlag(r.htbClient))
 
 	// Machine management tools
@@ -52,6 +56,16 @@ func (r *Registry) registerTools() {
 	r.RegisterTool(NewSubmitUserFlag(r.htbClient))
 	r.RegisterTool(NewSubmitRootFlag(r.htbClient))
 
+	// Sherlock management tools
+	r.RegisterTool(NewListSherlocks(r.htbClient))
+	r.RegisterTool(NewListSherlockCategories(r.htbClient))
+	r.RegisterTool(NewGetSherlockInfo(r.htbClient))
+	r.RegisterTool(NewGetSherlockPlay(r.htbClient))
+	r.RegisterTool(NewGetSherlockTasks(r.htbClient))
+	r.RegisterTool(NewGetSherlockProgress(r.htbClient))
+	r.RegisterTool(NewSubmitSherlockFlag(r.htbClient))
+	r.RegisterTool(NewDownloadSherlock(r.htbClient))
+
 	// User management tools
 	r.RegisterTool(NewGetUserProfile(r.htbClient))
 	r.RegisterTool(NewGetUserProgress(r.htbClient))
@@ -59,6 +73,12 @@ func (r *Registry) registerTools() {
 	// Search and utility tools
 	r.RegisterTool(NewSearchContent(r.htbClient))
 	r.RegisterTool(NewGetServerStatus(r.htbClient))
+
+	// Platform tools
+	r.RegisterTool(NewGetVPNStatus(r.htbClient))
+	r.RegisterTool(NewGetActiveResources(r.htbClient))
+	r.RegisterTool(NewListChallengeCategories(r.htbClient))
+	r.RegisterTool(NewGetRecommended(r.htbClient))
 }
 
 // RegisterTool registers a new tool

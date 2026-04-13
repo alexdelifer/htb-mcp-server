@@ -66,6 +66,26 @@ func (t *ListChallenges) Execute(ctx context.Context, args map[string]interface{
 		status = s
 	}
 
+	categoryFilter := ""
+	if c, ok := args["category"].(string); ok {
+		categoryFilter = c
+	}
+
+	difficultyFilter := ""
+	if d, ok := args["difficulty"].(string); ok {
+		difficultyFilter = d
+	}
+
+	page := 1
+	if p, ok := args["page"].(float64); ok {
+		page = int(p)
+	}
+
+	perPage := 20
+	if pp, ok := args["per_page"].(float64); ok {
+		perPage = int(pp)
+	}
+
 	// Build endpoint URL based on status
 	endpoint := "/challenge/list"
 	if status == "retired" {
@@ -76,6 +96,49 @@ func (t *ListChallenges) Execute(ctx context.Context, args map[string]interface{
 	data, err := t.client.GetWithParsing(ctx, endpoint, "challenges")
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch challenges: %w", err)
+	}
+
+	// Apply client-side filtering and pagination
+	if data != nil {
+		if challenges, ok := data.([]interface{}); ok {
+			// Filter by category and difficulty
+			if categoryFilter != "" || difficultyFilter != "" {
+				var filtered []interface{}
+				for _, c := range challenges {
+					challenge, ok := c.(map[string]interface{})
+					if !ok {
+						continue
+					}
+					if difficultyFilter != "" {
+						if d, _ := challenge["difficulty"].(string); d != difficultyFilter {
+							continue
+						}
+					}
+					if categoryFilter != "" {
+						if cat, _ := challenge["category_name"].(string); cat != categoryFilter {
+							// Also try the "name" field inside nested category
+							if cat2, _ := challenge["challenge_category_name"].(string); cat2 != categoryFilter {
+								continue
+							}
+						}
+					}
+					filtered = append(filtered, c)
+				}
+				challenges = filtered
+			}
+
+			// Apply pagination
+			start := (page - 1) * perPage
+			if start >= len(challenges) {
+				data = []interface{}{}
+			} else {
+				end := start + perPage
+				if end > len(challenges) {
+					end = len(challenges)
+				}
+				data = challenges[start:end]
+			}
+		}
 	}
 
 	// Create JSON content

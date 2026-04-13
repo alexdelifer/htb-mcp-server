@@ -71,6 +71,16 @@ func (t *ListMachines) Execute(ctx context.Context, args map[string]interface{})
 		perPage = int(pp)
 	}
 
+	difficultyFilter := ""
+	if d, ok := args["difficulty"].(string); ok {
+		difficultyFilter = d
+	}
+
+	osFilter := ""
+	if o, ok := args["os"].(string); ok {
+		osFilter = o
+	}
+
 	// Build endpoint URL based on status
 	var endpoint string
 	if status == "retired" {
@@ -83,6 +93,31 @@ func (t *ListMachines) Execute(ctx context.Context, args map[string]interface{})
 	data, err := t.client.GetWithParsing(ctx, endpoint, "data")
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch machines: %w", err)
+	}
+
+	// Apply client-side filtering if difficulty or os specified
+	if (difficultyFilter != "" || osFilter != "") && data != nil {
+		if machines, ok := data.([]interface{}); ok {
+			var filtered []interface{}
+			for _, m := range machines {
+				machine, ok := m.(map[string]interface{})
+				if !ok {
+					continue
+				}
+				if difficultyFilter != "" {
+					if dt, _ := machine["difficultyText"].(string); dt != difficultyFilter {
+						continue
+					}
+				}
+				if osFilter != "" {
+					if os, _ := machine["os"].(string); os != osFilter {
+						continue
+					}
+				}
+				filtered = append(filtered, m)
+			}
+			data = filtered
+		}
 	}
 
 	// Create JSON content

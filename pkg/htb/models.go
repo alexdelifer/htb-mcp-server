@@ -138,6 +138,16 @@ type ServerStatus struct {
 	Timestamp    time.Time `json:"timestamp"`
 }
 
+// ContainerActionRequest represents a Docker container start/stop request
+type ContainerActionRequest struct {
+	ContainerableID int `json:"containerable_id"`
+}
+
+// SherlockFlagRequest represents a Sherlock task flag submission
+type SherlockFlagRequest struct {
+	Flag string `json:"flag"`
+}
+
 // Error represents an API error response
 type Error struct {
 	Code    int    `json:"code"`

@@ -87,7 +87,8 @@ func (c *Client) Post(ctx context.Context, endpoint string, body interface{}) (*
 	return c.Request(ctx, http.MethodPost, endpoint, body)
 }
 
-// ParseResponse parses a JSON response and extracts a specific field
+// ParseResponse parses a JSON response and extracts a specific field.
+// Handles both top-level objects and arrays.
 func (c *Client) ParseResponse(resp *http.Response, field string) (interface{}, error) {
 	defer resp.Body.Close()
 
@@ -96,9 +97,16 @@ func (c *Client) ParseResponse(resp *http.Response, field string) (interface{}, 
 		return nil, fmt.Errorf("failed to read response body: %w", err)
 	}
 
+	// Try parsing as object first
 	var result map[string]interface{}
 	if err := json.Unmarshal(body, &result); err != nil {
-		return nil, fmt.Errorf("failed to parse JSON response: %w", err)
+		// Try parsing as array (some endpoints return top-level arrays)
+		var arrayResult []interface{}
+		if err2 := json.Unmarshal(body, &arrayResult); err2 != nil {
+			return nil, fmt.Errorf("failed to parse JSON response: %w", err)
+		}
+		// Arrays don't support field extraction
+		return arrayResult, nil
 	}
 
 	if field == "" {
