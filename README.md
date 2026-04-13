@@ -4,26 +4,51 @@ A Model Context Protocol (MCP) server that provides AI assistants with programma
 
 ## Features
 
-The HTB MCP Server exposes 12 comprehensive tools for interacting with the HackTheBox platform:
+The HTB MCP Server exposes **31 tools** for interacting with the HackTheBox platform:
 
 ### Challenge Management
 
-- **`list_challenges`** - Get paginated list of challenges with filtering
+- **`list_challenges`** - Get paginated list of challenges with filtering by category, difficulty
+- **`get_challenge_info`** - Get detailed challenge info (description, Docker status, creator, downloads)
 - **`start_challenge`** - Initialize a challenge environment
+- **`spawn_challenge_container`** - Start a Docker instance for a challenge, returns IP:port
+- **`stop_challenge_container`** - Stop a running Docker challenge instance
+- **`download_challenge`** - Get signed download URL for challenge files
 - **`submit_challenge_flag`** - Submit flags for challenge verification
 
 ### Machine Management
 
-- **`list_machines`** - Get active/retired machines with status information
+- **`list_machines`** - Get active/retired machines with client-side filtering by difficulty and OS
+- **`get_machine_info`** - Get detailed machine profile (description, maker, ratings, user/root blood)
 - **`start_machine`** - Start a machine and get connection details
+- **`reset_machine`** - Reset a running machine instance
+- **`stop_machine`** - Stop a running machine
 - **`get_machine_ip`** - Retrieve IP address of active machine
 - **`submit_user_flag`** - Submit user flags for machines
 - **`submit_root_flag`** - Submit root flags for machines
 
+### Sherlock (DFIR) Management
+
+- **`list_sherlocks`** - List Sherlock DFIR challenges with pagination
+- **`list_sherlock_categories`** - Get Sherlock category taxonomy
+- **`get_sherlock_info`** - Get Sherlock description and related academy modules
+- **`get_sherlock_play`** - Get scenario details, creators, download info, and play status
+- **`get_sherlock_tasks`** - List tasks/questions for a Sherlock with hints and completion status
+- **`get_sherlock_progress`** - Check solve progress (tasks answered, ownership status)
+- **`submit_sherlock_flag`** - Submit answers for individual Sherlock tasks
+- **`download_sherlock`** - Get signed download URL for Sherlock evidence files
+
 ### User Management
 
 - **`get_user_profile`** - Retrieve user profile and statistics
-- **`get_user_progress`** - Get completion status and achievements
+- **`get_user_progress`** - Get completion status filtered by type (machines, challenges, overview)
+
+### Platform & Connectivity
+
+- **`get_vpn_status`** - Check VPN connection status (server, IP, bandwidth)
+- **`get_active_resources`** - See what machines/containers are currently running
+- **`list_challenge_categories`** - Get the full category list (Web, Pwn, Crypto, etc.)
+- **`get_recommended`** - Get HTB staff-picked recommended machines or challenges
 
 ### Search & Utility
 
@@ -110,20 +135,26 @@ Add to your MCP client configuration (e.g., Claude Desktop):
 Once connected, you can use the tools through your AI assistant:
 
 ```
-# List active challenges
-"Can you show me the available Web challenges on HackTheBox?"
+# List active challenges filtered by category
+"Show me easy Web challenges on HackTheBox"
 
-# Start a machine
-"Please start machine ID 123 and get its IP address"
+# Start a machine and get its IP
+"Start machine ID 123 and get its IP address"
+
+# Full machine workflow
+"Search for 'Lame', start it, get the IP, and when I'm done submit my flags"
+
+# Sherlock DFIR workflow
+"List the Sherlock challenges, show me the tasks for Sherlock 42, and download the evidence files"
+
+# Spawn a Docker challenge
+"Start the Docker instance for challenge 15 and tell me the connection info"
+
+# Check VPN and active resources
+"Am I connected to the VPN? What machines do I have running?"
 
 # Submit a flag
 "Submit the user flag 'HTB{example_flag}' for machine 123"
-
-# Search for content
-"Search for machines related to 'Active Directory'"
-
-# Check server status
-"What's the current status of the HTB MCP server?"
 ```
 
 ## API Endpoints
@@ -194,8 +225,19 @@ go test ./...
 go test -cover ./...
 
 # Run integration tests (requires HTB_TOKEN)
-HTB_TOKEN="your.token" go test -tags=integration ./...
+HTB_TOKEN="your.token" go test -tags=integration ./internal/tools/ -v
+
+# Run lifecycle tests (spawns/stops a real machine — use with care)
+RUN_LIFECYCLE_TESTS=1 HTB_TOKEN="your.token" go test -tags=integration ./internal/tools/ -v -run Lifecycle
+
+# Run flag submission tests (submits a known-bad flag)
+RUN_FLAG_TESTS=1 HTB_TOKEN="your.token" go test -tags=integration ./internal/tools/ -v -run Flag
 ```
+
+The integration test suite has 20 tests organized in tiers:
+- **Tier 1 (safe reads):** profile, search, list, info endpoints
+- **Tier 2 (gated behind `RUN_LIFECYCLE_TESTS`):** machine start/stop, container spawn/stop
+- **Tier 3 (gated behind `RUN_FLAG_TESTS`):** flag submission with known-bad flag
 
 ## Security Considerations
 
@@ -265,21 +307,17 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - Model Context Protocol community for the specification
 - Go community for excellent tooling and libraries
 
-## Roadmap
+## What Changed (fork)
 
-### Phase 2 Features
+This fork adds significant feature coverage beyond the original 12 tools:
 
-- Real-time machine status notifications
-- Advanced analytics and reporting
-- Team collaboration features
-- Custom challenge creation tools
-
-### Long-term Goals
-
-- Mobile application support
-- Integration with other security platforms
-- Advanced automation capabilities
-- Machine learning-powered recommendations
+- **+8 Sherlock tools** — full DFIR challenge lifecycle (list, info, tasks, progress, flag submission, downloads)
+- **+4 Challenge instance tools** — Docker container spawn/stop, detailed challenge info, file downloads
+- **+4 Platform tools** — VPN status, active resource check, challenge categories, recommendations
+- **+3 Machine tools** — get_machine_info, reset_machine, stop_machine
+- **Bug fixes** — `list_machines`/`list_challenges` now respect filter params (client-side filtering), `get_user_progress` respects the `type` parameter
+- **JSON array parsing** — fixed `ParseResponse` to handle endpoints that return top-level arrays
+- **Integration test suite** — 20 tests covering all tool categories, tiered by risk level
 
 ## Support
 
